@@ -129,8 +129,6 @@ services:
       - "traefik.http.routers.gpu-monitor.tls.certresolver=myresolver"
       - "traefik.http.services.gpu-monitor.loadbalancer.server.port=8081"
       - "traefik.http.services.gpu-monitor.loadbalancer.server.scheme=https"
-      - "traefik.http.services.gpu-monitor.loadbalancer.serversTransport=insecureSkipVerifyTransport"
-
 
   netdata:
     image: netdata/netdata
