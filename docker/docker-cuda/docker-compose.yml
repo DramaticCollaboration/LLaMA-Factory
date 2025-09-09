@@ -176,7 +176,15 @@ services:
       - net.ipv6.conf.all.disable_ipv6=0
       - net.ipv6.conf.all.forwarding=1
       - net.ipv6.conf.default.forwarding=1
-
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.wg-easy.rule=Host(`wg-easy.empasy.com`)"
+      - "traefik.http.routers.wg-easy.entrypoints=websecure"
+      - "traefik.http.routers.wg-easy.tls=true"
+      - "traefik.http.routers.wg-easy.tls.certresolver=myresolver"
+      - "traefik.http.routers.wg-easy.service=wg-easy"
+      - "traefik.http.services.wg-easy.loadbalancer.server.port=51821"
+      - "traefik.http.services.wg-easy.loadbalancer.server.scheme=http"
 
 volumes:
   netdataconfig:
