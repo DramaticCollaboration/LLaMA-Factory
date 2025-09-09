@@ -158,6 +158,7 @@ services:
     environment:
       - INSECURE=true
     networks:
+      proxy:
       wg:
         ipv4_address: 10.42.42.42
         ipv6_address: fdcc:ad94:bacf:61a3::2a
