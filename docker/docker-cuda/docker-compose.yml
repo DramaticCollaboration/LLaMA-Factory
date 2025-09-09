@@ -83,6 +83,7 @@ services:
     tty: true
     # shm_size: "16gb"  # ipc: host is set
     stdin_open: true
+    # command: bash
     deploy:
       resources:
         reservations:

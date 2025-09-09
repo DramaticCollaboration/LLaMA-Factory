@@ -68,4 +68,4 @@ ENV https_proxy=
 RUN pip config unset global.index-url && \
     pip config unset global.extra-index-url
 
-CMD ["python", " src/webui.py", "--api"]
+CMD ["python", "./src/webui.py", "--api"]
