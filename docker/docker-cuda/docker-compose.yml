@@ -103,7 +103,7 @@ services:
       - "traefik.http.services.llamafactory.loadbalancer.server.port=7860"
       - "traefik.http.services.llamafactory.loadbalancer.server.scheme=http"
       # Define the BasicAuth middleware
-      - "traefik.http.middlewares.llamafactory-auth.basicauth.users=admin:$$apr1$$woMTuYuG$$SNYIIQ4pPFpJKFvaLkYpd."
+      - "traefik.http.middlewares.llamafactory-auth.basicauth.users=admin:$$apr1$$woMTuYuG$$SNYIIQ4pPFpJKFvaLkYpd.,clbee:$$apr1$$42j4qpO5$$S2Wu2NLrg2Lr21NvzM2Qe1"
       - "traefik.http.routers.llamafactory.middlewares=llamafactory-auth@docker"
 
       - "traefik.http.routers.llamafactory-api.rule=Host(`llm-api.empasy.com`)"
