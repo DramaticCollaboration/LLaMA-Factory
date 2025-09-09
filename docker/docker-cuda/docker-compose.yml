@@ -7,6 +7,7 @@ services:
       - "--api.insecure=true"
       - "--providers.docker=true"
       - "--providers.docker.exposedbydefault=false"
+      - "--providers.docker.network=proxy"
       - "--entryPoints.web.address=:80"
       - "--entryPoints.websecure.address=:443"
       - "--certificatesresolvers.myresolver.acme.httpchallenge=true"
@@ -157,6 +158,7 @@ services:
     container_name: wg-easy
     environment:
       - INSECURE=true
+      - WG_HOST=wg-easy.empasy.com
     networks:
       proxy:
       wg:
