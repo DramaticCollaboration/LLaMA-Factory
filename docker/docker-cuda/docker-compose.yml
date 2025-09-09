@@ -40,7 +40,7 @@ services:
       - "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https"
 
       # Define the BasicAuth middleware
-      - "traefik.http.middlewares.dashboard-auth.basicauth.users=admin:$apr1$N6rppI.N$5nYClUJLwZRQs9mlcgCHO1"
+      - "traefik.http.middlewares.dashboard-auth.basicauth.users=admin:$apr1$woMTuYuG$SNYIIQ4pPFpJKFvaLkYpd."
       - "traefik.http.routers.dashboard.middlewares=dashboard-auth@docker"
 
   portainer:
@@ -101,7 +101,7 @@ services:
       - "traefik.http.services.llamafactory.loadbalancer.server.port=7860"
       - "traefik.http.services.llamafactory.loadbalancer.server.scheme=http"
       # Define the BasicAuth middleware
-      - "traefik.http.middlewares.llamafactory-auth.basicauth.users=admin:$apr1$N6rppI.N$5nYClUJLwZRQs9mlcgCHO1"
+      - "traefik.http.middlewares.llamafactory-auth.basicauth.users=admin:$apr1$woMTuYuG$SNYIIQ4pPFpJKFvaLkYpd."
       - "traefik.http.routers.llamafactory.middlewares=llamafactory-auth@docker"
 
   gpu-monitor:
@@ -135,7 +135,7 @@ services:
       - "traefik.http.services.gpu-monitor.loadbalancer.server.port=8081"
       - "traefik.http.services.gpu-monitor.loadbalancer.server.scheme=http"
       # Define the BasicAuth middleware
-      - "traefik.http.middlewares.gpu-monitor-auth.basicauth.users=admin:$apr1$N6rppI.N$5nYClUJLwZRQs9mlcgCHO1"
+      - "traefik.http.middlewares.gpu-monitor-auth.basicauth.users=admin:$apr1$woMTuYuG$SNYIIQ4pPFpJKFvaLkYpd."
       - "traefik.http.routers.gpu-monitor.middlewares=gpu-monitor-auth@docker"
 
   netdata:
