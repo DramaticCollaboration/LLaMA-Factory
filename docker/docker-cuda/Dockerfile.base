@@ -1,6 +1,7 @@
 # Start from the pytorch official image (ubuntu-22.04 + cuda-12.6 + python-3.11)
 # https://hub.docker.com/r/pytorch/pytorch/tags
 FROM pytorch/pytorch:2.8.0-cuda12.9-cudnn9-devel
+# docker build -t empasy/pytorch:th2.8.0-cu129-flashattn2.8.3-cxx11abi0-devel -f Dockerfile.base .
 
 # Define environments
 ENV MAX_JOBS=16
