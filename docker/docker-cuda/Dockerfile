@@ -67,3 +67,5 @@ ENV https_proxy=
 # Reset pip config
 RUN pip config unset global.index-url && \
     pip config unset global.extra-index-url
+
+CMD ["llamafactory-cli", " webui"]
