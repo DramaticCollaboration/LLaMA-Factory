@@ -124,8 +124,6 @@ services:
     container_name: netdata
     pid: host
     network_mode: host
-    networks:
-      - proxy
     restart: unless-stopped
     cap_add:
       - SYS_PTRACE
@@ -153,12 +151,6 @@ services:
             - driver: nvidia
               count: all
               capabilities: [gpu]
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.netdata.rule=Host(`llm-netdata.empasy.com`)"
-      - "traefik.http.routers.netdata.entrypoints=websecure"
-      - "traefik.http.routers.netdata.tls.certresolver=myresolver"
-      - "traefik.http.services.netdata.loadbalancer.server.port=19999"
 
 volumes:
   netdataconfig:
