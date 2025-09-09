@@ -1,5 +1,8 @@
 # https://hub.docker.com/r/hiyouga/pytorch/tags
-ARG BASE_IMAGE=hiyouga/pytorch:th2.6.0-cu124-flashattn2.7.4-cxx11abi0-devel
+ARG BASE_IMAGE=hiyouga/pytorch:th2.8.0-cu126-flashattn2.8.3-cxx11abi0-devel
+
+FROM pytorch/pytorch:2.8.0-cuda12.6-cudnn9-devel
+
 FROM ${BASE_IMAGE}
 
 # Installation arguments
