@@ -108,7 +108,7 @@ services:
       - "traefik.http.routers.llamafactory-api.entrypoints=websecure"
       - "traefik.http.routers.llamafactory-api.tls=true"
       - "traefik.http.routers.llamafactory-api.tls.certresolver=myresolver"
-      - "traefik.http.services.llamafactory-api.loadbalancer.server.port=7860"
+      - "traefik.http.services.llamafactory-api.loadbalancer.server.port=8000"
       - "traefik.http.services.llamafactory-api.loadbalancer.server.scheme=http"
 
   netdata:
