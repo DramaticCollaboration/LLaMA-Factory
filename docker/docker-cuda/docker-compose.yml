@@ -61,6 +61,7 @@ services:
       - "traefik.http.routers.portainer.tls.certresolver=myresolver"
       - "traefik.http.services.portainer.loadbalancer.server.port=9443"
       - "traefik.http.services.portainer.loadbalancer.server.scheme=https"
+      - "traefik.http.services.portainer.loadbalancer.serversTransport=skipVerify"
 
 
   llamafactory:
@@ -126,7 +127,7 @@ services:
       - "traefik.http.routers.gpu-monitor.entrypoints=websecure"
       - "traefik.http.routers.gpu-monitor.tls=true"
       - "traefik.http.routers.gpu-monitor.tls.certresolver=myresolver"
-      - "traefik.http.services.gpu-monitor.loadbalancer.server.port=7860"
+      - "traefik.http.services.gpu-monitor.loadbalancer.server.port=8081"
       - "traefik.http.services.gpu-monitor.loadbalancer.server.scheme=https"
       - "traefik.http.services.gpu-monitor.loadbalancer.serversTransport=insecureSkipVerifyTransport"
 
