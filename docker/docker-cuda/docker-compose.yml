@@ -67,16 +67,19 @@ services:
       - "traefik.http.services.portainer.loadbalancer.server.port=9000"
       - "traefik.http.services.portainer.loadbalancer.server.scheme=http"
 
-  llamafactory:
+  llm-api:
     build:
       dockerfile: ./docker/docker-cuda/Dockerfile
       context: ../..
       args:
         PIP_INDEX: https://pypi.org/simple
         EXTRAS: metrics
-    container_name: llamafactory
+        INSTALL_FLASHATTN: 1
+        HF_HOME: /data/huggingface
+    container_name: llm-api
+    environment:
+      HF_HOME: /data/huggingface
     ports:
-      - "7860:7860"
       - "8000:8000"
     networks:
       - proxy
@@ -84,7 +87,9 @@ services:
     tty: true
     # shm_size: "16gb"  # ipc: host is set
     stdin_open: true
-    # command: bash
+    command: llamafactory-cli api examples/inference/qwen2_5vl.yaml
+    volumes:
+      - llamafactory:/data
     deploy:
       resources:
         reservations:
@@ -95,24 +100,141 @@ services:
     restart: unless-stopped
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.llamafactory.rule=Host(`llm.empasy.com`)"
-      - "traefik.http.routers.llamafactory.entrypoints=websecure"
-      - "traefik.http.routers.llamafactory.tls=true"
-      - "traefik.http.routers.llamafactory.tls.certresolver=myresolver"
-      - "traefik.http.routers.llamafactory.service=llamafactory"
-      - "traefik.http.services.llamafactory.loadbalancer.server.port=7860"
-      - "traefik.http.services.llamafactory.loadbalancer.server.scheme=http"
-      # Define the BasicAuth middleware
-      - "traefik.http.middlewares.llamafactory-auth.basicauth.users=admin:$$apr1$$woMTuYuG$$SNYIIQ4pPFpJKFvaLkYpd.,clbee:$$apr1$$42j4qpO5$$S2Wu2NLrg2Lr21NvzM2Qe1"
-      - "traefik.http.routers.llamafactory.middlewares=llamafactory-auth@docker"
 
-      - "traefik.http.routers.llamafactory-api.rule=Host(`llm-api.empasy.com`)"
-      - "traefik.http.routers.llamafactory-api.entrypoints=websecure"
-      - "traefik.http.routers.llamafactory-api.tls=true"
-      - "traefik.http.routers.llamafactory-api.tls.certresolver=myresolver"
-      - "traefik.http.routers.llamafactory-api.service=llamafactory-api"
-      - "traefik.http.services.llamafactory-api.loadbalancer.server.port=8000"
-      - "traefik.http.services.llamafactory-api.loadbalancer.server.scheme=http"
+      - "traefik.http.routers.llm-api.rule=Host(`llm-api.empasy.com`)"
+      - "traefik.http.routers.llm-api.entrypoints=websecure"
+      - "traefik.http.routers.llm-api.tls=true"
+      - "traefik.http.routers.llm-api.tls.certresolver=myresolver"
+      - "traefik.http.routers.llm-api.service=llm-api"
+      - "traefik.http.services.llm-api.loadbalancer.server.port=8000"
+      - "traefik.http.services.llm-api.loadbalancer.server.scheme=http"
+
+  llm-web:
+    build:
+      dockerfile: ./docker/docker-cuda/Dockerfile
+      context: ../..
+      args:
+        PIP_INDEX: https://pypi.org/simple
+        EXTRAS: metrics
+        INSTALL_FLASHATTN: 1
+        HF_HOME: /data/huggingface
+    container_name: llm-web
+    environment:
+      HF_HOME: /data/huggingface
+    ports:
+      - "7860:7860"
+    networks:
+      - proxy
+    ipc: host
+    tty: true
+    # shm_size: "16gb"  # ipc: host is set
+    stdin_open: true
+    command: llamafactory-cli webui
+    volumes:
+      - llamafactory:/data
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: "all"
+              capabilities: [ gpu ]
+    restart: unless-stopped
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.llm-web.rule=Host(`llm.empasy.com`)"
+      - "traefik.http.routers.llm-web.entrypoints=websecure"
+      - "traefik.http.routers.llm-web.tls=true"
+      - "traefik.http.routers.llm-web.tls.certresolver=myresolver"
+      - "traefik.http.routers.llm-web.service=llm-web"
+      - "traefik.http.services.llm-web.loadbalancer.server.port=7860"
+      - "traefik.http.services.llm-web.loadbalancer.server.scheme=http"
+      # Define the BasicAuth middleware
+      - "traefik.http.middlewares.llm-web-auth.basicauth.users=admin:$$apr1$$woMTuYuG$$SNYIIQ4pPFpJKFvaLkYpd.,clbee:$$apr1$$42j4qpO5$$S2Wu2NLrg2Lr21NvzM2Qe1"
+      - "traefik.http.routers.llm-web.middlewares=llm-web-auth@docker"
+
+  llm-chat:
+    build:
+      dockerfile: ./docker/docker-cuda/Dockerfile
+      context: ../..
+      args:
+        PIP_INDEX: https://pypi.org/simple
+        EXTRAS: metrics
+        INSTALL_FLASHATTN: 1
+    container_name: llm-chat
+    environment:
+      HF_HOME: /data/huggingface
+    ports:
+      - "5005:7860"
+    networks:
+      - proxy
+    ipc: host
+    tty: true
+    # shm_size: "16gb"  # ipc: host is set
+    stdin_open: true
+    command: llamafactory-cli webchat examples/inference/qwen2_5vl.yaml
+    volumes:
+      - llamafactory:/data
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: "all"
+              capabilities: [ gpu ]
+    restart: unless-stopped
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.llm-chat.rule=Host(`llm-chat.empasy.com`)"
+      - "traefik.http.routers.llm-chat.entrypoints=websecure"
+      - "traefik.http.routers.llm-chat.tls=true"
+      - "traefik.http.routers.llm-chat.tls.certresolver=myresolver"
+      - "traefik.http.routers.llm-chat.service=llm-chat"
+      - "traefik.http.services.llm-chat.loadbalancer.server.port=7860"
+      - "traefik.http.services.llm-chat.loadbalancer.server.scheme=http"
+      # Define the BasicAuth middleware
+      - "traefik.http.middlewares.llm-chat-auth.basicauth.users=admin:$$apr1$$woMTuYuG$$SNYIIQ4pPFpJKFvaLkYpd.,clbee:$$apr1$$42j4qpO5$$S2Wu2NLrg2Lr21NvzM2Qe1"
+      - "traefik.http.routers.llm-chat.middlewares=llm-chat-auth@docker"
+
+
+
+
+
+
+  gpu-monitor:
+    image: bigsk1/gpu-monitor:latest
+    container_name: gpu-monitor
+    ports:
+      - "8081:8081"
+    networks:
+      - proxy
+    environment:
+      - TZ=Asia/Seoul   # update your timezone
+    volumes:
+      - /etc/localtime:/etc/localtime:ro  # Share host timezone
+      - ./history:/app/history:rw    # Persist historical data and SQLite database with explicit rw permissions
+      - ./logs:/app/logs:rw    # Persist logs with explicit rw permissions
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    restart: unless-stopped
+    runtime: nvidia
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.llm-gpu.rule=Host(`llm-gpu.empasy.com`)"
+      - "traefik.http.routers.llm-gpu.entrypoints=websecure"
+      - "traefik.http.routers.llm-gpu.tls=true"
+      - "traefik.http.routers.llm-gpu.tls.certresolver=myresolver"
+      - "traefik.http.routers.llm-gpu.service=llm-gpu"
+      - "traefik.http.services.llm-gpu.loadbalancer.server.port=8081"
+      - "traefik.http.services.llm-gpu.loadbalancer.server.scheme=http"
+      # Define the BasicAuth middleware
+      - "traefik.http.middlewares.llm-gpu-auth.basicauth.users=admin:$$apr1$$woMTuYuG$$SNYIIQ4pPFpJKFvaLkYpd."
+      - "traefik.http.routers.llm-gpu.middlewares=llm-gpu-auth@docker"
 
   netdata:
     image: netdata/netdata
@@ -197,6 +319,7 @@ volumes:
   netdatacache:
   portainer_data:
   etc_wireguard:
+  llamafactory:
 
 networks:
   proxy:

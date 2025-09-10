@@ -36,6 +36,11 @@ RUN pip config set global.index-url "${PIP_INDEX}" && \
 COPY requirements.txt /app
 RUN pip install --no-cache-dir -r requirements.txt
 
+# Install supervisor
+RUN apt-get update && \
+    apt-get install -y supervisor && \
+    apt-get clean
+
 # Copy the rest of the application into the image
 COPY . /app
 
@@ -68,4 +73,4 @@ ENV https_proxy=
 RUN pip config unset global.index-url && \
     pip config unset global.extra-index-url
 
-CMD ["python", "./src/webui.py", "--api"]
+CMD ["/usr/bin/supervisord", "-c", "/app/supervisord.conf"]
