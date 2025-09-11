@@ -75,10 +75,10 @@ services:
         PIP_INDEX: https://pypi.org/simple
         EXTRAS: metrics
         INSTALL_FLASHATTN: 1
-        HF_HOME: /data/huggingface
     container_name: llm-api
     environment:
       HF_HOME: /data/huggingface
+      CUDA_VISIBLE_DEVICES: 0,1
     ports:
       - "8000:8000"
     networks:
@@ -117,10 +117,10 @@ services:
         PIP_INDEX: https://pypi.org/simple
         EXTRAS: metrics
         INSTALL_FLASHATTN: 1
-        HF_HOME: /data/huggingface
     container_name: llm-web
     environment:
       HF_HOME: /data/huggingface
+      CUDA_VISIBLE_DEVICES: 0,1
     ports:
       - "7860:7860"
     networks:
@@ -164,6 +164,7 @@ services:
     container_name: llm-chat
     environment:
       HF_HOME: /data/huggingface
+      CUDA_VISIBLE_DEVICES: 0,1
     ports:
       - "5005:7860"
     networks:
