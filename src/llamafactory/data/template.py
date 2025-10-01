@@ -416,8 +416,8 @@ class ReasoningTemplate(Template):
 
         prompt_ids, response_ids = super().encode_oneturn(tokenizer, messages, system, tools)
         if (
-            self.thought_words[0] not in messages[-1]["content"]
-            and self.thought_words[1] not in messages[-1]["content"]
+            self.thought_words[0].strip() not in messages[-1]["content"]
+            and self.thought_words[1].strip() not in messages[-1]["content"]
         ):  # add empty cot
             if not self.enable_thinking:  # do not compute loss
                 prompt_ids += self.get_thought_word_ids(tokenizer)
@@ -442,8 +442,8 @@ class ReasoningTemplate(Template):
         encoded_messages = self._encode(tokenizer, messages, system, tools)
         for i in range(0, len(messages), 2):
             if (
-                self.thought_words[0] not in messages[i + 1]["content"]
-                and self.thought_words[1] not in messages[i + 1]["content"]
+                self.thought_words[0].strip() not in messages[i + 1]["content"]
+                and self.thought_words[1].strip() not in messages[i + 1]["content"]
             ):  # add empty cot
                 if not self.enable_thinking:  # do not compute loss
                     encoded_messages[i] += self.get_thought_word_ids(tokenizer)
@@ -680,6 +680,23 @@ register_template(
 
 
 register_template(
+    name="bailing_v2",
+    format_user=StringFormatter(slots=["<role>HUMAN</role>{{content}}<|role_end|><role>ASSISTANT</role>"]),
+    format_system=StringFormatter(slots=["<role>SYSTEM</role>{{content}}<|role_end|>"]),
+    format_assistant=StringFormatter(slots=["{{content}}<|role_end|>"]),
+    format_observation=StringFormatter(
+        slots=[
+            "<role>OBSERVATION</role>\n<tool_response>\n{{content}}\n</tool_response><|role_end|><role>ASSISTANT</role>"
+        ]
+    ),
+    format_function=FunctionFormatter(slots=["{{content}}<|role_end|>"], tool_format="ling"),
+    format_tools=ToolFormatter(tool_format="ling"),
+    stop_words=["<|endoftext|>"],
+    efficient_eos=True,
+)
+
+
+register_template(
     name="belle",
     format_user=StringFormatter(slots=["Human: {{content}}\n\nBelle: "]),
     format_assistant=StringFormatter(slots=["{{content}}", {"eos_token"}, "\n\n"]),
@@ -895,8 +912,47 @@ register_template(
 
 
 register_template(
+    name="dots_ocr",
+    format_user=StringFormatter(slots=["<|user|>{{content}}<|endofuser|><|assistant|>"]),
+    format_assistant=StringFormatter(slots=["{{content}}<|endofassistant|>"]),
+    format_system=StringFormatter(slots=["<|system|>{{content}}<|endofsystem|>\n"]),
+    stop_words=["<|endofassistant|>"],
+    efficient_eos=True,
+    mm_plugin=get_mm_plugin(
+        name="qwen2_vl",
+        image_token="<|imgpad|>",
+        video_token="<|vidpad|>",
+        vision_bos_token="<|img|>",
+        vision_eos_token="<|endofimg|>",
+    ),
+)
+
+
+register_template(
     name="empty",
     format_assistant=StringFormatter(slots=["{{content}}"]),
+)
+
+
+# copied from chatml template
+register_template(
+    name="ernie",
+    format_user=StringFormatter(slots=["<|im_start|>user\n{{content}}<|im_end|>\n\n<|im_start|>assistant\n"]),
+    format_assistant=StringFormatter(slots=["{{content}}<|im_end|>\n\n"]),
+    format_system=StringFormatter(slots=["<|im_start|>system\n{{content}}<|im_end|>\n\n"]),
+    format_observation=StringFormatter(slots=["<|im_start|>tool\n{{content}}<|im_end|>\n\n<|im_start|>assistant\n"]),
+    default_system="<global_setting>\nthink_mode=True\n</global_setting>",
+    stop_words=["<|im_end|>"],
+)
+
+
+register_template(
+    name="ernie_nothink",
+    format_user=StringFormatter(slots=["User: {{content}}\nAssistant: "]),
+    format_assistant=StringFormatter(slots=["{{content}}<|end_of_sentence|>"]),
+    format_system=StringFormatter(slots=["{{content}}\n"]),
+    format_prefix=EmptyFormatter(slots=["<|begin_of_sentence|>"]),
+    stop_words=["<|end_of_sentence|>"],
 )
 
 
@@ -1806,9 +1862,54 @@ register_template(
     stop_words=["<|im_end|>"],
     replace_eos=True,
     mm_plugin=get_mm_plugin(
-        name="qwen2_omni", audio_token="<|AUDIO|>", image_token="<|IMAGE|>", video_token="<|VIDEO|>"
+        name="qwen2_omni",
+        image_token="<|IMAGE|>",
+        video_token="<|VIDEO|>",
+        audio_token="<|AUDIO|>",
+        vision_bos_token="<|vision_bos|>",
+        vision_eos_token="<|vision_eos|>",
+        audio_bos_token="<|audio_bos|>",
+        audio_eos_token="<|audio_eos|>",
     ),
 )
+
+
+register_template(
+    name="qwen3_omni",
+    format_user=StringFormatter(slots=["<|im_start|>user\n{{content}}<|im_end|>\n<|im_start|>assistant\n"]),
+    format_assistant=StringFormatter(slots=["{{content}}<|im_end|>\n"]),
+    format_system=StringFormatter(slots=["<|im_start|>system\n{{content}}<|im_end|>\n"]),
+    format_function=FunctionFormatter(slots=["{{content}}<|im_end|>\n"], tool_format="qwen"),
+    format_observation=StringFormatter(
+        slots=["<|im_start|>user\n<tool_response>\n{{content}}\n</tool_response><|im_end|>\n<|im_start|>assistant\n"]
+    ),
+    format_tools=ToolFormatter(tool_format="qwen"),
+    stop_words=["<|im_end|>"],
+    replace_eos=True,
+    mm_plugin=get_mm_plugin(
+        name="qwen2_omni", image_token="<|image_pad|>", video_token="<|video_pad|>", audio_token="<|audio_pad|>"
+    ),
+    template_class=ReasoningTemplate,
+)
+
+
+register_template(
+    name="qwen3_omni_nothink",
+    format_user=StringFormatter(slots=["<|im_start|>user\n{{content}}<|im_end|>\n<|im_start|>assistant\n"]),
+    format_assistant=StringFormatter(slots=["{{content}}<|im_end|>\n"]),
+    format_system=StringFormatter(slots=["<|im_start|>system\n{{content}}<|im_end|>\n"]),
+    format_function=FunctionFormatter(slots=["{{content}}<|im_end|>\n"], tool_format="qwen"),
+    format_observation=StringFormatter(
+        slots=["<|im_start|>user\n<tool_response>\n{{content}}\n</tool_response><|im_end|>\n<|im_start|>assistant\n"]
+    ),
+    format_tools=ToolFormatter(tool_format="qwen"),
+    stop_words=["<|im_end|>"],
+    replace_eos=True,
+    mm_plugin=get_mm_plugin(
+        name="qwen2_omni", image_token="<|image_pad|>", video_token="<|video_pad|>", audio_token="<|audio_pad|>"
+    ),
+)
+
 
 # copied from qwen template
 register_template(
@@ -1825,6 +1926,41 @@ register_template(
     stop_words=["<|im_end|>"],
     replace_eos=True,
     mm_plugin=get_mm_plugin(name="qwen2_vl", image_token="<|image_pad|>", video_token="<|video_pad|>"),
+)
+
+
+# copied from qwen template
+register_template(
+    name="qwen3_vl",
+    format_user=StringFormatter(slots=["<|im_start|>user\n{{content}}<|im_end|>\n<|im_start|>assistant\n"]),
+    format_assistant=StringFormatter(slots=["{{content}}<|im_end|>\n"]),
+    format_system=StringFormatter(slots=["<|im_start|>system\n{{content}}<|im_end|>\n"]),
+    format_function=FunctionFormatter(slots=["{{content}}<|im_end|>\n"], tool_format="qwen"),
+    format_observation=StringFormatter(
+        slots=["<|im_start|>user\n<tool_response>\n{{content}}\n</tool_response><|im_end|>\n<|im_start|>assistant\n"]
+    ),
+    format_tools=ToolFormatter(tool_format="qwen"),
+    stop_words=["<|im_end|>"],
+    replace_eos=True,
+    mm_plugin=get_mm_plugin(name="qwen3_vl", image_token="<|image_pad|>", video_token="<|video_pad|>"),
+    template_class=ReasoningTemplate,
+)
+
+
+# copied from qwen template
+register_template(
+    name="qwen3_vl_nothink",
+    format_user=StringFormatter(slots=["<|im_start|>user\n{{content}}<|im_end|>\n<|im_start|>assistant\n"]),
+    format_assistant=StringFormatter(slots=["{{content}}<|im_end|>\n"]),
+    format_system=StringFormatter(slots=["<|im_start|>system\n{{content}}<|im_end|>\n"]),
+    format_function=FunctionFormatter(slots=["{{content}}<|im_end|>\n"], tool_format="qwen"),
+    format_observation=StringFormatter(
+        slots=["<|im_start|>user\n<tool_response>\n{{content}}\n</tool_response><|im_end|>\n<|im_start|>assistant\n"]
+    ),
+    format_tools=ToolFormatter(tool_format="qwen"),
+    stop_words=["<|im_end|>"],
+    replace_eos=True,
+    mm_plugin=get_mm_plugin(name="qwen3_vl", image_token="<|image_pad|>", video_token="<|video_pad|>"),
 )
 
 
