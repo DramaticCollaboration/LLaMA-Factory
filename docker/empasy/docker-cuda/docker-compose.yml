@@ -1,0 +1,266 @@
+services:
+  traefik:
+    image: "traefik:v3.5.3"
+    container_name: "traefik"
+    command:
+      #- "--log.level=DEBUG"
+      - "--api.insecure=true"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--providers.docker.network=proxy"
+      - "--entryPoints.web.address=:80"
+      - "--entryPoints.websecure.address=:443"
+      - "--certificatesresolvers.myresolver.acme.httpchallenge=true"
+      - "--certificatesresolvers.myresolver.acme.httpchallenge.entrypoint=web"
+      #- "--certificatesresolvers.myresolver.acme.caserver=https://acme-staging-v02.api.letsencrypt.org/directory"
+      - "--certificatesresolvers.myresolver.acme.email=poh@empasy.com"
+      - "--certificatesresolvers.myresolver.acme.storage=/letsencrypt/acme.json"
+    ports:
+      - "80:80"
+      - "443:443"
+      - "8080:8080"
+    volumes:
+      - "./letsencrypt:/letsencrypt"
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"
+    networks:
+      - proxy
+    labels:
+      # Dashboard Router
+      - "traefik.enable=true"
+      - "traefik.http.routers.dashboard.rule=Host(`traefik-llm.empasy.com`)" # Replace with your desired domain
+      - "traefik.http.routers.dashboard.service=api@internal"
+      - "traefik.http.routers.dashboard.entrypoints=websecure" # Or 'web' if using http
+      - "traefik.http.routers.dashboard.tls=true"
+      - "traefik.http.routers.dashboard.tls.certresolver=myresolver"
+      # Dashboard Service
+      # - "traefik.http.services.dashboard.loadbalancer.server.port=8080" # Not needed for api@internal
+      # Middleware for HTTP to HTTPS redirection
+      - "traefik.http.routers.http-catchall.rule=hostregexp(`{host:.+}`)"
+      - "traefik.http.routers.http-catchall.entrypoints=web"
+      - "traefik.http.routers.http-catchall.middlewares=redirect-to-https"
+      - "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https"
+
+      # Define the BasicAuth middleware
+      - "traefik.http.middlewares.dashboard-auth.basicauth.users=admin:$$apr1$$woMTuYuG$$SNYIIQ4pPFpJKFvaLkYpd."
+      - "traefik.http.routers.dashboard.middlewares=dashboard-auth@docker"
+    restart: unless-stopped
+
+  portainer:
+    image: portainer/portainer-ce:latest
+    container_name: portainer
+    environment:
+      - TZ=Asia/Seoul
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - portainer_data:/data
+    ports:
+      - "8001:8000"
+      - "9443:9443"
+    restart: unless-stopped
+    networks:
+      - proxy
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.portainer.rule=Host(`portainer-llm.empasy.com`)"
+      - "traefik.http.routers.portainer.entrypoints=websecure"
+      - "traefik.http.routers.portainer.tls=true"
+      - "traefik.http.routers.portainer.tls.certresolver=myresolver"
+      - "traefik.http.services.portainer.loadbalancer.server.port=9000"
+      - "traefik.http.services.portainer.loadbalancer.server.scheme=http"
+
+  llm-web:
+    build:
+      dockerfile: ./docker/docker-cuda/Dockerfile
+      context: ../../..
+      args:
+        PIP_INDEX: https://pypi.org/simple
+        EXTRAS: metrics
+        INSTALL_FLASHATTN: 1
+    container_name: llm-web
+    environment:
+      HF_HOME: /data/huggingface
+      CUDA_VISIBLE_DEVICES: 0,1
+    ports:
+      - "7860:7860"
+      - "8000:8000"
+    networks:
+      - proxy
+    ipc: host
+    tty: true
+    # shm_size: "16gb"  # ipc: host is set
+    stdin_open: true
+    command: llamafactory-cli webui
+    volumes:
+      - llamafactory:/data
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: "all"
+              capabilities: [ gpu ]
+    restart: unless-stopped
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.llm-web.rule=Host(`llm.empasy.com`)"
+      - "traefik.http.routers.llm-web.entrypoints=websecure"
+      - "traefik.http.routers.llm-web.tls=true"
+      - "traefik.http.routers.llm-web.tls.certresolver=myresolver"
+      - "traefik.http.routers.llm-web.service=llm-web"
+      - "traefik.http.services.llm-web.loadbalancer.server.port=7860"
+      - "traefik.http.services.llm-web.loadbalancer.server.scheme=http"
+      # Define the BasicAuth middleware
+      - "traefik.http.middlewares.llm-web-auth.basicauth.users=admin:$$apr1$$woMTuYuG$$SNYIIQ4pPFpJKFvaLkYpd.,clbee:$$apr1$$42j4qpO5$$S2Wu2NLrg2Lr21NvzM2Qe1"
+      - "traefik.http.routers.llm-web.middlewares=llm-web-auth@docker"
+
+
+      - "traefik.http.routers.llm-api.rule=Host(`llm-api.empasy.com`)"
+      - "traefik.http.routers.llm-api.entrypoints=websecure"
+      - "traefik.http.routers.llm-api.tls=true"
+      - "traefik.http.routers.llm-api.tls.certresolver=myresolver"
+      - "traefik.http.routers.llm-api.service=llm-api"
+      - "traefik.http.services.llm-api.loadbalancer.server.port=8000"
+      - "traefik.http.services.llm-api.loadbalancer.server.scheme=http"
+#
+#  llm-chat:
+#    build:
+#      dockerfile: ./docker/docker-cuda/Dockerfile
+#      context: ../..
+#      args:
+#        PIP_INDEX: https://pypi.org/simple
+#        EXTRAS: metrics
+#        INSTALL_FLASHATTN: 1
+#    container_name: llm-chat
+#    environment:
+#      HF_HOME: /data/huggingface
+#      CUDA_VISIBLE_DEVICES: 0,1
+#    ports:
+#      - "5005:7860"
+#    networks:
+#      - proxy
+#    ipc: host
+#    tty: true
+#    # shm_size: "16gb"  # ipc: host is set
+#    stdin_open: true
+#    command: llamafactory-cli webchat examples/inference/qwen2_5vl.yaml
+#    volumes:
+#      - llamafactory:/data
+#    deploy:
+#      resources:
+#        reservations:
+#          devices:
+#            - driver: nvidia
+#              count: "all"
+#              capabilities: [ gpu ]
+#    restart: unless-stopped
+#    labels:
+#      - "traefik.enable=true"
+#      - "traefik.http.routers.llm-chat.rule=Host(`llm-chat.empasy.com`)"
+#      - "traefik.http.routers.llm-chat.entrypoints=websecure"
+#      - "traefik.http.routers.llm-chat.tls=true"
+#      - "traefik.http.routers.llm-chat.tls.certresolver=myresolver"
+#      - "traefik.http.routers.llm-chat.service=llm-chat"
+#      - "traefik.http.services.llm-chat.loadbalancer.server.port=7860"
+#      - "traefik.http.services.llm-chat.loadbalancer.server.scheme=http"
+#      # Define the BasicAuth middleware
+#      - "traefik.http.middlewares.llm-chat-auth.basicauth.users=admin:$$apr1$$woMTuYuG$$SNYIIQ4pPFpJKFvaLkYpd.,clbee:$$apr1$$42j4qpO5$$S2Wu2NLrg2Lr21NvzM2Qe1"
+#      - "traefik.http.routers.llm-chat.middlewares=llm-chat-auth@docker"
+#
+#
+
+  netdata:
+    image: netdata/netdata
+    container_name: netdata
+    pid: host
+    network_mode: host
+    restart: unless-stopped
+    cap_add:
+      - SYS_PTRACE
+      - SYS_ADMIN
+    security_opt:
+      - apparmor:unconfined
+    volumes:
+      - netdataconfig:/etc/netdata
+      - netdatalib:/var/lib/netdata
+      - netdatacache:/var/cache/netdata
+      - /:/host/root:ro,rslave
+      - /etc/passwd:/host/etc/passwd:ro
+      - /etc/group:/host/etc/group:ro
+      - /etc/localtime:/etc/localtime:ro
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /etc/os-release:/host/etc/os-release:ro
+      - /var/log:/host/var/log:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /run/dbus:/run/dbus:ro
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+
+  wg-easy:
+    #environment:
+    #  Optional:
+    #  - PORT=51821
+    #  - HOST=0.0.0.0
+    #  - INSECURE=false
+
+    image: ghcr.io/wg-easy/wg-easy:15
+    container_name: wg-easy
+    environment:
+      - INSECURE=true
+      - WG_HOST=wg-easy.empasy.com
+    networks:
+      proxy:
+      wg:
+        ipv4_address: 10.42.42.42
+        ipv6_address: fdcc:ad94:bacf:61a3::2a
+    volumes:
+      - etc_wireguard:/etc/wireguard
+      - /lib/modules:/lib/modules:ro
+    ports:
+      - "51820:51820/udp"
+      - "51821:51821/tcp"
+    restart: unless-stopped
+    cap_add:
+      - NET_ADMIN
+      - SYS_MODULE
+      # - NET_RAW # ⚠️ Uncomment if using Podman
+    sysctls:
+      - net.ipv4.ip_forward=1
+      - net.ipv4.conf.all.src_valid_mark=1
+      - net.ipv6.conf.all.disable_ipv6=0
+      - net.ipv6.conf.all.forwarding=1
+      - net.ipv6.conf.default.forwarding=1
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.wg-easy.rule=Host(`wg-easy.empasy.com`)"
+      - "traefik.http.routers.wg-easy.entrypoints=websecure"
+      - "traefik.http.routers.wg-easy.tls=true"
+      - "traefik.http.routers.wg-easy.tls.certresolver=myresolver"
+      - "traefik.http.routers.wg-easy.service=wg-easy"
+      - "traefik.http.services.wg-easy.loadbalancer.server.port=51821"
+      - "traefik.http.services.wg-easy.loadbalancer.server.scheme=http"
+
+volumes:
+  netdataconfig:
+  netdatalib:
+  netdatacache:
+  portainer_data:
+  etc_wireguard:
+  llamafactory:
+
+networks:
+  proxy:
+    external: true # Or define it here if not already existing
+  wg:
+    driver: bridge
+    enable_ipv6: true
+    ipam:
+      driver: default
+      config:
+        - subnet: 10.42.42.0/24
+        - subnet: fdcc:ad94:bacf:61a3::/64
