@@ -7,8 +7,7 @@ import tailwindcss from '@tailwindcss/vite'
 export default defineConfig({
     server: {
         host: '0.0.0.0',
-        // 또는 '0.0.0.0'으로 지정할 수 있습니다.
-        // host: '0.0.0.0'
+        port: 5173,
     },
     plugins: [react(), tailwindcss()],
     resolve: {
