@@ -1,6 +1,6 @@
 {
   "app": {
-    "title": "전자책을 마인드맵으로",
+    "title": "SyncMindBook",
     "description": "AI 기술을 사용하여 EPUB 및 PDF 전자책을 장별로 분석하고 지능형 요약을 생성합니다"
   },
   "upload": {
