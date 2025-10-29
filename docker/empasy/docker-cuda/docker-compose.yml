@@ -124,8 +124,8 @@ services:
 
   ebook-to-mindmap:
     build:
-      dockerfile: ./ebook-to-mindmap/Dockerfile
-      context: .
+      dockerfile: ./Dockerfile
+      context: ./ebook-to-mindmap
     container_name: ebook-to-mindmap
     ports:
       - "5173:5173"
