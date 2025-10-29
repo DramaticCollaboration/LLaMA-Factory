@@ -1,0 +1,171 @@
+import { useState, useEffect, useRef } from 'react'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { ScrollArea } from '@/components/ui/scroll-area'
+import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
+import { FileText, Loader2, ChevronLeft, ChevronRight } from 'lucide-react'
+import type { ChapterData, BookData } from '@/services/pdfProcessor'
+import { PdfProcessor } from '@/services/pdfProcessor'
+import { cn } from '@/lib/utils'
+import { useTranslation } from 'react-i18next'
+
+interface PdfReaderProps {
+  chapter: ChapterData
+  bookData?: BookData
+  onClose: () => void
+  className?: string
+}
+
+interface PageContent {
+  canvas?: HTMLCanvasElement
+}
+
+export function PdfReader({ chapter, bookData, onClose, className }: PdfReaderProps) {
+  const { t } = useTranslation()
+  const [chapterPages, setChapterPages] = useState<PageContent[]>([])
+  const [currentPageIndex, setCurrentPageIndex] = useState(0)
+  const [isLoadingPages, setIsLoadingPages] = useState(false)
+  const [pdfProcessor] = useState(() => new PdfProcessor())
+  const canvasContainerRef = useRef<HTMLDivElement>(null)
+
+  // Load the chapter's page content
+  useEffect(() => {
+    const loadChapterPages = async () => {
+      if (!chapter || !bookData?.pdfDocument) {
+        setChapterPages([])
+        return
+      }
+
+      setIsLoadingPages(true)
+      try {
+        const pages = await pdfProcessor.getChapterPages(bookData.pdfDocument, chapter)
+        setChapterPages(pages)
+        setCurrentPageIndex(0)
+      } catch (error) {
+        console.error('Failed to load PDF chapter page:', error)
+        //  If retrieving the page fails, set an empty array.
+        setChapterPages([])
+      } finally {
+        setIsLoadingPages(false)
+      }
+    }
+
+    loadChapterPages()
+  }, [chapter, bookData, pdfProcessor])
+
+  // Render the canvas of the current page
+  useEffect(() => {
+    if (chapterPages[currentPageIndex]?.canvas && canvasContainerRef.current) {
+      const canvas = chapterPages[currentPageIndex].canvas!
+      canvasContainerRef.current.innerHTML = ''
+      canvasContainerRef.current.appendChild(canvas)
+
+      // Set canvas style
+      canvas.style.maxWidth = '100%'
+      canvas.style.height = 'auto'
+      canvas.style.border = '1px solid #e5e7eb'
+      canvas.style.borderRadius = '8px'
+      canvas.style.boxShadow = '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+    }
+  }, [currentPageIndex, chapterPages])
+
+  const totalPages = chapterPages.length
+
+  const goToPreviousPage = () => {
+    if (currentPageIndex > 0) {
+      setCurrentPageIndex(currentPageIndex - 1)
+    }
+  }
+
+  const goToNextPage = () => {
+    if (currentPageIndex < totalPages - 1) {
+      setCurrentPageIndex(currentPageIndex + 1)
+    }
+  }
+
+  return (
+    <div className={cn("w-full", className)}>
+      {/*  Main reading area */}
+      <Card className='gap-0'>
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between">
+            <CardTitle className="flex items-center gap-2">
+              <FileText className="h-5 w-5" />
+              {chapter.title}
+              {chapter.startPage && chapter.endPage && (
+                <Badge variant="secondary" className="ml-2">
+                  {t('reader.pdf.page', { startPage: chapter.startPage, endPage: chapter.endPage })}
+                </Badge>
+              )}
+            </CardTitle>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={onClose}
+              >
+                {t('reader.pdf.close')}
+              </Button>
+            </div>
+          </div>
+
+          {/* Page Navigation */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between pt-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={goToPreviousPage}
+                disabled={currentPageIndex === 0}
+                className="flex items-center gap-1"
+              >
+                <ChevronLeft className="h-4 w-4" />
+                {t('reader.pdf.previousPage')}
+              </Button>
+
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-muted-foreground">
+                  {t('reader.pdf.pageInfo', { current: currentPageIndex + 1, total: totalPages })}
+                </span>
+                {chapter.startPage && (
+                  <Badge variant="outline" className="text-xs">
+                    {t('reader.pdf.pdfPageInfo', { page: (chapter.startPage || 1) + currentPageIndex })}
+                  </Badge>
+                )}
+              </div>
+
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={goToNextPage}
+                disabled={currentPageIndex === totalPages - 1}
+                className="flex items-center gap-1"
+              >
+                {t('reader.pdf.nextPage')}
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
+          )}
+        </CardHeader>
+
+        <CardContent>
+          <ScrollArea className="h-[80vh]">
+            {isLoadingPages ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="h-6 w-6 animate-spin mr-2" />
+                <span>{t('reader.pdf.loadingPages')}</span>
+              </div>
+            ) : (
+              <div className="flex justify-center">
+                <div
+                  ref={canvasContainerRef}
+                  className="max-w-full"
+                />
+              </div>
+            )}
+          </ScrollArea>
+        </CardContent>
+      </Card>
+    </div>
+  )
+}

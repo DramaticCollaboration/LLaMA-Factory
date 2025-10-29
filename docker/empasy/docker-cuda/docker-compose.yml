@@ -121,52 +121,27 @@ services:
       - "traefik.http.routers.llm-api.service=llm-api"
       - "traefik.http.services.llm-api.loadbalancer.server.port=8000"
       - "traefik.http.services.llm-api.loadbalancer.server.scheme=http"
-#
-#  llm-chat:
-#    build:
-#      dockerfile: ./docker/docker-cuda/Dockerfile
-#      context: ../..
-#      args:
-#        PIP_INDEX: https://pypi.org/simple
-#        EXTRAS: metrics
-#        INSTALL_FLASHATTN: 1
-#    container_name: llm-chat
-#    environment:
-#      HF_HOME: /data/huggingface
-#      CUDA_VISIBLE_DEVICES: 0,1
-#    ports:
-#      - "5005:7860"
-#    networks:
-#      - proxy
-#    ipc: host
-#    tty: true
-#    # shm_size: "16gb"  # ipc: host is set
-#    stdin_open: true
-#    command: llamafactory-cli webchat examples/inference/qwen2_5vl.yaml
-#    volumes:
-#      - llamafactory:/data
-#    deploy:
-#      resources:
-#        reservations:
-#          devices:
-#            - driver: nvidia
-#              count: "all"
-#              capabilities: [ gpu ]
-#    restart: unless-stopped
-#    labels:
-#      - "traefik.enable=true"
-#      - "traefik.http.routers.llm-chat.rule=Host(`llm-chat.empasy.com`)"
-#      - "traefik.http.routers.llm-chat.entrypoints=websecure"
-#      - "traefik.http.routers.llm-chat.tls=true"
-#      - "traefik.http.routers.llm-chat.tls.certresolver=myresolver"
-#      - "traefik.http.routers.llm-chat.service=llm-chat"
-#      - "traefik.http.services.llm-chat.loadbalancer.server.port=7860"
-#      - "traefik.http.services.llm-chat.loadbalancer.server.scheme=http"
-#      # Define the BasicAuth middleware
-#      - "traefik.http.middlewares.llm-chat-auth.basicauth.users=admin:$$apr1$$woMTuYuG$$SNYIIQ4pPFpJKFvaLkYpd.,clbee:$$apr1$$42j4qpO5$$S2Wu2NLrg2Lr21NvzM2Qe1"
-#      - "traefik.http.routers.llm-chat.middlewares=llm-chat-auth@docker"
-#
-#
+
+  ebook-to-mindmap:
+    build:
+      dockerfile: ./ebook-to-mindmap/Dockerfile
+      context: ./ebook-to-mindmap
+    container_name: ebook-to-mindmap
+    ports:
+      - "5173:5173"
+    restart: unless-stopped
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.mindmap.rule=Host(`mindmap.empasy.com`)"
+      - "traefik.http.routers.mindmap.entrypoints=websecure"
+      - "traefik.http.routers.mindmap.tls=true"
+      - "traefik.http.routers.mindmap.tls.certresolver=myresolver"
+      - "traefik.http.routers.mindmap.service=mindmap"
+      - "traefik.http.services.mindmap.loadbalancer.server.port=5173"
+      - "traefik.http.services.mindmap.loadbalancer.server.scheme=http"
+      # Define the BasicAuth middleware
+      - "traefik.http.middlewares.mindmap-auth.basicauth.users=admin:$$apr1$$woMTuYuG$$SNYIIQ4pPFpJKFvaLkYpd.,clbee:$$apr1$$42j4qpO5$$S2Wu2NLrg2Lr21NvzM2Qe1"
+      - "traefik.http.routers.mindmap.middlewares=mindmap-auth@docker"
 
   netdata:
     image: netdata/netdata
