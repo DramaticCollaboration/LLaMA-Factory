@@ -89,7 +89,7 @@ services:
     tty: true
     # shm_size: "16gb"  # ipc: host is set
     stdin_open: true
-    command: bash -c "llamafactory-cli webui &&  llamafactory-cli api examples/inference/qwen3vl.yaml"
+    command: bash -c "llamafactory-cli webui && llamafactory-cli api examples/inference/qwen3vl.yaml"
     volumes:
       - llamafactory:/data
     deploy:
@@ -125,7 +125,7 @@ services:
   ebook-to-mindmap:
     build:
       dockerfile: ./ebook-to-mindmap/Dockerfile
-      context: ./ebook-to-mindmap
+      context: .
     container_name: ebook-to-mindmap
     ports:
       - "5173:5173"
