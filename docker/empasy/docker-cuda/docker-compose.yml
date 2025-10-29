@@ -130,6 +130,8 @@ services:
     ports:
       - "5173:5173"
     restart: unless-stopped
+    networks:
+      - proxy
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.mindmap.rule=Host(`mindmap.empasy.com`)"
