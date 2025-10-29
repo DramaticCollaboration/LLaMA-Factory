@@ -89,7 +89,7 @@ services:
     tty: true
     # shm_size: "16gb"  # ipc: host is set
     stdin_open: true
-    command: llamafactory-cli webui
+    command: bash -c "llamafactory-cli webui &&  llamafactory-cli api examples/inference/qwen3vl.yaml"
     volumes:
       - llamafactory:/data
     deploy:

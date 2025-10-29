@@ -3,7 +3,7 @@ POST https://llm-api.empasy.com/v1/chat/completions
 Content-Type: application/json
 
 {
-  "model": "Qwen/Qwen2.5-VL-7B-Instruct",
+  "model": "Qwen/Qwen3-VL-8B-Thinking",
   "messages": [
     {"role": "system", "content": "You are a helpful assistant."},
     {"role": "user", "content": "안녕하세요, LLaMA-Factory 소개해 주세요."}
