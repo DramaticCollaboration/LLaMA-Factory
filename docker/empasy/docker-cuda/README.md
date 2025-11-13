@@ -1,0 +1,1 @@
+nohup llamafactory-cli api examples/inference/qwen3vl.yaml  > out.log 2> err.log &
