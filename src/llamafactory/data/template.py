@@ -616,7 +616,14 @@ def get_template_and_fix_tokenizer(tokenizer: "PreTrainedTokenizer", data_args: 
         logger.info_rank0(f"Using default system message: {data_args.default_system}.")
         template.default_system = data_args.default_system
 
-    template.enable_thinking = data_args.enable_thinking
+    if isinstance(template, ReasoningTemplate):
+        logger.warning_rank0(
+            "You are using reasoning template, "
+            "please add `_nothink` suffix if the model is not a reasoning model. "
+            "e.g., qwen3_vl_nothink"
+        )
+        template.enable_thinking = data_args.enable_thinking
+
     template.fix_special_tokens(tokenizer)
     template.fix_jinja_template(tokenizer)
     return template
@@ -953,6 +960,19 @@ register_template(
     format_system=StringFormatter(slots=["{{content}}\n"]),
     format_prefix=EmptyFormatter(slots=["<|begin_of_sentence|>"]),
     stop_words=["<|end_of_sentence|>"],
+)
+
+
+register_template(
+    name="ernie_vl",
+    format_user=StringFormatter(slots=["User: {{content}}"]),
+    format_assistant=StringFormatter(slots=["\nAssistant: {{content}}<|end_of_sentence|>"]),
+    format_system=StringFormatter(slots=["{{content}}\n"]),
+    stop_words=["<|end_of_sentence|>"],
+    replace_eos=True,
+    replace_jinja_template=True,
+    template_class=ReasoningTemplate,
+    mm_plugin=get_mm_plugin(name="ernie_vl", image_token="<|image@placeholder|>", video_token="<|video@placeholder|>"),
 )
 
 

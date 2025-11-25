@@ -56,7 +56,18 @@ LAYERNORM_NAMES = {"norm", "ln"}
 
 LLAMABOARD_CONFIG = "llamaboard_config.yaml"
 
-MCA_SUPPORTED_MODELS = {"deepseek_v3", "llama", "mistral", "mixtral", "qwen2", "qwen2_vl", "qwen2_5_vl", "qwen3", "qwen3_moe", "qwen3_next"}
+MCA_SUPPORTED_MODELS = {
+    "deepseek_v3",
+    "llama",
+    "mistral",
+    "mixtral",
+    "qwen2",
+    "qwen2_vl",
+    "qwen2_5_vl",
+    "qwen3",
+    "qwen3_moe",
+    "qwen3_next",
+}
 
 METHODS = ["full", "freeze", "lora", "oft"]
 
@@ -109,6 +120,7 @@ class EngineName(str, Enum):
     HF = "huggingface"
     VLLM = "vllm"
     SGLANG = "sglang"
+    KT = "ktransformers"
 
 
 class DownloadSource(str, Enum):
@@ -642,6 +654,26 @@ register_model_group(
         },
     },
     template="ernie_nothink",
+)
+
+
+register_model_group(
+    models={
+        "ERNIE-4.5-VL-28B-A3B-PT": {
+            DownloadSource.DEFAULT: "baidu/ERNIE-4.5-VL-28B-A3B-PT",
+            DownloadSource.MODELSCOPE: "PaddlePaddle/ERNIE-4.5-VL-28B-A3B-PT",
+        },
+        "ERNIE-4.5-VL-28B-A3B-Thinking": {
+            DownloadSource.DEFAULT: "baidu/ERNIE-4.5-VL-28B-A3B-Thinking",
+            DownloadSource.MODELSCOPE: "PaddlePaddle/ERNIE-4.5-VL-28B-A3B-Thinking",
+        },
+        "ERNIE-4.5-VL-424B-A47B-Base-PT": {
+            DownloadSource.DEFAULT: "baidu/ERNIE-4.5-VL-424B-A47B-PT",
+            DownloadSource.MODELSCOPE: "PaddlePaddle/ERNIE-4.5-VL-424B-A47B-PT",
+        },
+    },
+    template="ernie_vl",
+    multimodal=True,
 )
 
 

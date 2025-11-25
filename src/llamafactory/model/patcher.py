@@ -43,8 +43,18 @@ if TYPE_CHECKING:
 
     from ..hparams import ModelArguments
 
+if is_transformers_version_greater_than("4.57.0"):
+    from transformers.models.qwen3_omni_moe import modeling_qwen3_omni_moe
+
 
 logger = logging.get_logger(__name__)
+
+
+def patch_qwen3_omni_moe_thinker_text_sparse_moe_block():
+    if is_transformers_version_greater_than("4.57.0"):
+        from .model_utils.moe import Qwen3OmniMoeThinkerTextSparseMoeBlock
+
+        modeling_qwen3_omni_moe.Qwen3OmniMoeThinkerTextSparseMoeBlock = Qwen3OmniMoeThinkerTextSparseMoeBlock
 
 
 def patch_tokenizer(tokenizer: "PreTrainedTokenizer", model_args: "ModelArguments") -> None:
@@ -136,6 +146,9 @@ def patch_config(
     if getattr(config, "model_type", None) == "internlm3" and not is_transformers_version_greater_than("4.47.1"):
         raise RuntimeError("InternLM3 model requires transformers>=4.47.1, please upgrade it.")
 
+    if getattr(config, "model_type", None) == "qwen3_omni_moe":
+        patch_qwen3_omni_moe_thinker_text_sparse_moe_block()
+
     # deepspeed zero3 is not compatible with low_cpu_mem_usage
     init_kwargs["low_cpu_mem_usage"] = model_args.low_cpu_mem_usage and (not is_deepspeed_zero3_enabled())
 
@@ -192,23 +205,6 @@ def patch_model(
 
     if not model_args.use_unsloth:
         print_attn_implementation(model.config)
-
-    # ======== NPU fused attention redirect: SDPA -> torch_npu.npu_fusion_attention ========
-    # Place after all structural modifications and before DeepSpeed/Trainer initialization;
-    # does not modify any Module/_parameters, safe for ZeRO-3 + offload.
-    try:
-        import os
-
-        import torch
-
-        if hasattr(torch, "npu") and torch.npu.is_available() and os.environ.get("NPU_FA_DISABLE", "0") != "1":
-            from .model_utils.sdpa_npu_redirect import apply_sdpa_npu_redirect
-
-            apply_sdpa_npu_redirect(verbose=not model_args.use_unsloth)
-            logger.info_rank0("[sdpa_npu_redirect] Enabled: SDPA will use Ascend npu_fusion_attention when available.")
-    except Exception as e:
-        logger.warning_rank0(f"[sdpa_npu_redirect] Failed to enable redirect, will keep native SDPA. Reason: {e}")
-    # =====================================================================================
 
     try:
         model.add_model_tags(["llama-factory"])
